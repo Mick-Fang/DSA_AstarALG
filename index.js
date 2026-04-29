@@ -98,7 +98,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         ctx.beginPath();
         ctx.moveTo(currentPos.x, currentPos.y);
-        ctx.lineTo(endPos.x, endPos.y);
+        
+        if (currentPos.x !== endPos.x && currentPos.y !== endPos.y) {
+            // L-shape corner for Manhattan Distance
+            const cornerX = endPos.x;
+            const cornerY = currentPos.y;
+            // Ensure radius isn't larger than the segment lengths
+            const radius = Math.min(20, Math.abs(endPos.x - currentPos.x) / 2, Math.abs(endPos.y - currentPos.y) / 2);
+            
+            ctx.arcTo(cornerX, cornerY, endPos.x, endPos.y, radius);
+            ctx.lineTo(endPos.x, endPos.y);
+        } else {
+            ctx.lineTo(endPos.x, endPos.y);
+        }
         
         // Tension styling
         const lightness = 50 + tension * 40; // 50% to 90% (brighter when closer)
