@@ -58,6 +58,35 @@ p {
     justify-content: center;
 }
 
+.controls-secondary {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.control-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #cbd5e1;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.control-label input[type="range"] {
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
+.control-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
 button {
     background-color: #1e293b;
     color: #f8fafc;
@@ -186,4 +215,15 @@ button:disabled {
 @keyframes pathAnimation {
     0% { transform: scale(0.8); background-color: var(--color-path); }
     100% { transform: scale(1); background-color: var(--color-path); box-shadow: 0 0 10px var(--color-path); border-radius: 4px; z-index: 5;}
+}
+
+/* Dijkstra overlay styles */
+.node.dijkstra-visited {
+    background-color: #334155; /* A bit lighter than the dark blue empty grid */
+    transition: background-color 0.5s ease;
+}
+
+.node.dijkstra-path {
+    background-color: #475569; /* Even lighter for the path */
+    border-radius: 4px;
 }

@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Animation runner
-    async function animateAlgorithm(history, path, found, heuristicType) {
+    async function animateAlgorithm(history, path, found, heuristicType, dijkstraResult) {
         btnStart.disabled = true;
         btnGenerate.disabled = true;
         btnClear.disabled = true;
@@ -220,61 +220,111 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ctx) ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
         
         const cameFromMap = new Map();
-
         const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
-        // Animate history
-        for (let i = 0; i < history.length; i++) {
-            const step = history[i];
-            const nodeEl = document.getElementById(`node-${step.node.r}-${step.node.c}`);
-            
-            if (step.type === 'ENQUEUE') {
-                if (step.parent) {
-                    cameFromMap.set(`${step.node.r},${step.node.c}`, step.parent);
+        const speedSlider = document.getElementById('speed-slider');
+        const getDelay = () => {
+            const val = parseInt(speedSlider ? speedSlider.value : 50); // 1 to 100
+            // Map 100 to 5ms, 1 to 200ms
+            return 205 - val * 2;
+        };
+
+        const maxHistory = Math.max(
+            history.length, 
+            (dijkstraResult && dijkstraResult.history) ? dijkstraResult.history.length : 0
+        );
+
+        // Animate history simultaneously
+        for (let i = 0; i < maxHistory; i++) {
+            let renderedSomething = false;
+
+            // 1. Dijkstra Step
+            if (dijkstraResult && dijkstraResult.history && i < dijkstraResult.history.length) {
+                const dStep = dijkstraResult.history[i];
+                if (dStep.type === 'VISIT' && 
+                    !(dStep.node.r === startNode.r && dStep.node.c === startNode.c) &&
+                    !(dStep.node.r === endNode.r && dStep.node.c === endNode.c)) {
+                    
+                    const nodeEl = document.getElementById(`node-${dStep.node.r}-${dStep.node.c}`);
+                    if (nodeEl && !nodeEl.classList.contains('obstacle') && !nodeEl.classList.contains('visited')) {
+                        nodeEl.classList.add('dijkstra-visited');
+                        renderedSomething = true;
+                    }
                 }
             }
 
-            // Skip start/end nodes coloring for history so they stay visible
-            if ((step.node.r === startNode.r && step.node.c === startNode.c) ||
-                (step.node.r === endNode.r && step.node.c === endNode.c)) {
+            // 2. A* Step
+            if (i < history.length) {
+                const step = history[i];
+                const nodeEl = document.getElementById(`node-${step.node.r}-${step.node.c}`);
                 
-                if (step.type === 'VISIT') {
-                    drawForces(step.node, cameFromMap, heuristicType);
-                    await delay(80);
+                if (step.type === 'ENQUEUE') {
+                    if (step.parent) {
+                        cameFromMap.set(`${step.node.r},${step.node.c}`, step.parent);
+                    }
                 }
-                continue;
+
+                if ((step.node.r === startNode.r && step.node.c === startNode.c) ||
+                    (step.node.r === endNode.r && step.node.c === endNode.c)) {
+                    
+                    if (step.type === 'VISIT') {
+                        drawForces(step.node, cameFromMap, heuristicType);
+                        renderedSomething = true;
+                    }
+                } else {
+                    if (step.type === 'ENQUEUE') {
+                        nodeEl.classList.add('enqueue');
+                        renderedSomething = true;
+                    } else if (step.type === 'VISIT') {
+                        nodeEl.classList.remove('enqueue');
+                        nodeEl.classList.add('visited');
+                        drawForces(step.node, cameFromMap, heuristicType);
+                        renderedSomething = true;
+                    }
+                }
             }
 
-            if (step.type === 'ENQUEUE') {
-                nodeEl.classList.add('enqueue');
-            } else if (step.type === 'VISIT') {
-                nodeEl.classList.remove('enqueue');
-                nodeEl.classList.add('visited');
-                drawForces(step.node, cameFromMap, heuristicType);
+            if (renderedSomething) {
+                await delay(getDelay());
             }
-
-            // Adjust speed here (Slower by 2x)
-            await delay(80); // 每一格都停頓 80ms (原本是 40ms)
         }
 
         // Animate path
         if (found && path && path.length > 0) {
-            await delay(1200);
+            await delay(1000);
             
-            // Re-draw the final full path on canvas for dramatic effect
             if (ctx) {
                 ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                
+                // Draw Dijkstra path first (underneath)
+                if (dijkstraResult && dijkstraResult.found && dijkstraResult.path) {
+                    ctx.beginPath();
+                    ctx.lineWidth = 6;
+                    ctx.strokeStyle = 'rgba(71, 85, 105, 0.7)'; // Slate color
+                    const startPos = getCenterCoords(startNode.r, startNode.c);
+                    if (startPos) {
+                        ctx.moveTo(startPos.x, startPos.y);
+                        for (const p of dijkstraResult.path) {
+                            const pos = getCenterCoords(p.r, p.c);
+                            if (pos) ctx.lineTo(pos.x, pos.y);
+                        }
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw A* path
                 ctx.beginPath();
                 ctx.lineWidth = 4;
                 ctx.strokeStyle = 'rgba(250, 204, 21, 1)'; // Solid Yellow
                 const startPos = getCenterCoords(startNode.r, startNode.c);
-                ctx.moveTo(startPos.x, startPos.y);
-                
-                for (const p of path) {
-                    const pos = getCenterCoords(p.r, p.c);
-                    ctx.lineTo(pos.x, pos.y);
+                if (startPos) {
+                    ctx.moveTo(startPos.x, startPos.y);
+                    for (const p of path) {
+                        const pos = getCenterCoords(p.r, p.c);
+                        if (pos) ctx.lineTo(pos.x, pos.y);
+                    }
+                    ctx.stroke();
                 }
-                ctx.stroke();
             }
 
             for (let i = 0; i < path.length; i++) {
@@ -285,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const nodeEl = document.getElementById(`node-${p.r}-${p.c}`);
                 nodeEl.className = 'node path'; // Clear others, add path
-                await delay(80); // 40ms 變成 80ms
+                await delay(getDelay());
             }
         } else {
             // 若找不到路徑
@@ -316,10 +366,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const heuristicSelect = document.getElementById('heuristic-select');
         const heuristicType = heuristicSelect ? heuristicSelect.value : 'manhattan';
         
-        const solver = new AStarSolver(currentGrid, startNode, endNode, heuristicType);
+        const toggleDijkstra = document.getElementById('toggle-dijkstra');
+        const showDijkstra = toggleDijkstra ? toggleDijkstra.checked : false;
+
+        let dijkstraResult = null;
+        if (showDijkstra) {
+            // Run Dijkstra to visualize its exploration space and path
+            const dijkstraSolver = new AStarSolver(currentGrid, startNode, endNode, heuristicType, 0);
+            dijkstraResult = dijkstraSolver.solve();
+        }
+
+        // Run A*
+        const solver = new AStarSolver(currentGrid, startNode, endNode, heuristicType, 1);
         const result = solver.solve();
         
-        animateAlgorithm(result.history, result.path, result.found, heuristicType);
+        animateAlgorithm(result.history, result.path, result.found, heuristicType, dijkstraResult);
     });
 
     // Initialize on load

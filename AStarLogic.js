@@ -60,13 +60,14 @@ class AStarSolver {
      * @param {Object} end - {r, c}
      * @param {string} heuristicType - 'manhattan', 'chebyshev', or 'euclidean'
      */
-    constructor(grid, start, end, heuristicType = 'manhattan') {
+    constructor(grid, start, end, heuristicType = 'manhattan', weight = 1) {
         this.grid = grid;
         this.start = start;
         this.end = end;
         this.rows = grid.length;
         this.cols = grid[0].length;
         this.heuristicType = heuristicType;
+        this.weight = weight;
     }
 
     heuristic(a, b) {
@@ -128,7 +129,7 @@ class AStarSolver {
             type: 'ENQUEUE',
             node: this.start,
             parent: null,
-            f: this.heuristic(this.start, this.end),
+            f: this.heuristic(this.start, this.end) * this.weight,
             g: 0,
             h: this.heuristic(this.start, this.end)
         });
@@ -156,7 +157,7 @@ class AStarSolver {
 
                 if (!costSoFar.has(nextKey) || newCost < costSoFar.get(nextKey)) {
                     costSoFar.set(nextKey, newCost);
-                    const priority = newCost + this.heuristic(next, this.end);
+                    const priority = newCost + this.heuristic(next, this.end) * this.weight;
                     frontier.enqueue(next, priority);
                     cameFrom.set(nextKey, current);
                     
