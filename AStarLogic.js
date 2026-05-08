@@ -85,7 +85,14 @@ class AStarSolver {
 
     getNeighbors(node) {
         const neighbors = [];
-        const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // Up, Down, Left, Right
+        let dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // Up, Down, Left, Right
+        
+        if (this.heuristicType === 'chebyshev') {
+            dirs = [
+                [-1, 0], [1, 0], [0, -1], [0, 1], // Straight
+                [-1, -1], [-1, 1], [1, -1], [1, 1] // Diagonal
+            ];
+        }
         
         for (const dir of dirs) {
             const nr = node.r + dir[0];
