@@ -2,7 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridContainer = document.getElementById('grid-container');
     const btnGenerate = document.getElementById('btn-generate');
     const btnStart = document.getElementById('btn-start');
+    const btnStop = document.getElementById('btn-stop');
     const btnClear = document.getElementById('btn-clear');
+
+    let abortAnimation = false;
 
     const overlayCanvas = document.getElementById('overlay-canvas');
     const ctx = overlayCanvas ? overlayCanvas.getContext('2d') : null;
@@ -236,6 +239,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Animate history simultaneously
         for (let i = 0; i < maxHistory; i++) {
+            if (abortAnimation) {
+                btnGenerate.disabled = false;
+                btnClear.disabled = false;
+                btnStart.disabled = false;
+                btnStop.disabled = true;
+                return;
+            }
             let renderedSomething = false;
 
             // 1. Dijkstra Step
@@ -328,6 +338,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             for (let i = 0; i < path.length; i++) {
+                if (abortAnimation) {
+                    btnGenerate.disabled = false;
+                    btnClear.disabled = false;
+                    btnStart.disabled = false;
+                    btnStop.disabled = true;
+                    return;
+                }
                 const p = path[i];
                 if ((p.r === startNode.r && p.c === startNode.c) ||
                     (p.r === endNode.r && p.c === endNode.c)) {
@@ -345,9 +362,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         btnGenerate.disabled = false;
         btnClear.disabled = false;
+        btnStop.disabled = true;
     }
 
     // Event Listeners
+    btnStop.addEventListener('click', () => {
+        abortAnimation = true;
+        btnStop.disabled = true;
+    });
+
     btnGenerate.addEventListener('click', generateNewMap);
 
     btnClear.addEventListener('click', () => {
@@ -360,6 +383,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btnStart.addEventListener('click', () => {
         if (!currentGrid || !startNode || !endNode) return;
         
+        abortAnimation = false;
+        if (btnStop) btnStop.disabled = false;
+
         // Clear previous animations first
         renderMap();
         
