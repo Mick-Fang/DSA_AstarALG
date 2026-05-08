@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     !(dStep.node.r === endNode.r && dStep.node.c === endNode.c)) {
                     
                     const nodeEl = document.getElementById(`node-${dStep.node.r}-${dStep.node.c}`);
-                    if (nodeEl && !nodeEl.classList.contains('obstacle') && !nodeEl.classList.contains('visited')) {
+                    if (nodeEl && !nodeEl.classList.contains('obstacle')) {
                         nodeEl.classList.add('dijkstra-visited');
                         renderedSomething = true;
                     }

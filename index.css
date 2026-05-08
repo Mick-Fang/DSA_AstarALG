@@ -155,6 +155,7 @@ button:disabled {
     height: 25px;
     background-color: var(--color-empty);
     transition: background-color 0.3s ease, transform 0.2s ease;
+    position: relative;
 }
 
 /* Base styles for legend nodes */
@@ -228,9 +229,18 @@ button:disabled {
 }
 
 /* Dijkstra overlay styles */
-.node.dijkstra-visited {
-    background-color: #334155; /* A bit lighter than the dark blue empty grid */
-    transition: background-color 0.5s ease;
+.node.dijkstra-visited::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #cbd5e1;
+    z-index: 2;
+    pointer-events: none;
 }
 
 .node.dijkstra-path {
