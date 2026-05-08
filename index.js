@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let rows = 20;
     let cols = 40;
     
-    let isDragging = null; // 紀錄目前正在拖曳的節點類型 ('start', 'end', 或 null)
+    let isDragging = null; // 紀錄目前正在拖曳的節點類型 ('start', 'end', 'draw_obstacle', 'erase_obstacle', 或 null)
     
     // Access logic from AStarLogic.js via window object
     const { MapGenerator, AStarSolver } = window.AStarLogic;
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function drawForces(currentNode, cameFromMap) {
+    function drawForces(currentNode, cameFromMap, heuristicType = 'manhattan') {
         if (!ctx) return;
         ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.beginPath();
         ctx.moveTo(currentPos.x, currentPos.y);
         
-        if (currentPos.x !== endPos.x && currentPos.y !== endPos.y) {
+        if (heuristicType === 'manhattan' && currentPos.x !== endPos.x && currentPos.y !== endPos.y) {
             // L-shape corner for Manhattan Distance
             const cornerX = endPos.x;
             const cornerY = currentPos.y;
@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.arcTo(cornerX, cornerY, endPos.x, endPos.y, radius);
             ctx.lineTo(endPos.x, endPos.y);
         } else {
+            // Straight line for Euclidean/Chebyshev or if aligned
             ctx.lineTo(endPos.x, endPos.y);
         }
         
@@ -142,18 +143,33 @@ document.addEventListener('DOMContentLoaded', () => {
             isDragging = 'start';
         } else if (r === endNode.r && c === endNode.c) {
             isDragging = 'end';
+        } else if (currentGrid[r][c] === 1) {
+            isDragging = 'erase_obstacle';
+            currentGrid[r][c] = 0;
+            renderMap();
+        } else {
+            isDragging = 'draw_obstacle';
+            currentGrid[r][c] = 1;
+            renderMap();
         }
     }
 
     function handleMouseEnter(r, c) {
         if (!isDragging) return;
-        if (currentGrid[r][c] === 1) return; // 不可放置於障礙物上
         
-        if (isDragging === 'start' && !(r === endNode.r && c === endNode.c)) {
+        const isStartOrEnd = (r === startNode.r && c === startNode.c) || (r === endNode.r && c === endNode.c);
+        
+        if (isDragging === 'start' && !isStartOrEnd && currentGrid[r][c] !== 1) {
             startNode = {r, c};
             renderMap();
-        } else if (isDragging === 'end' && !(r === startNode.r && c === startNode.c)) {
+        } else if (isDragging === 'end' && !isStartOrEnd && currentGrid[r][c] !== 1) {
             endNode = {r, c};
+            renderMap();
+        } else if (isDragging === 'draw_obstacle' && !isStartOrEnd) {
+            currentGrid[r][c] = 1;
+            renderMap();
+        } else if (isDragging === 'erase_obstacle' && !isStartOrEnd) {
+            currentGrid[r][c] = 0;
             renderMap();
         }
     }
@@ -195,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Animation runner
-    async function animateAlgorithm(history, path) {
+    async function animateAlgorithm(history, path, found, heuristicType) {
         btnStart.disabled = true;
         btnGenerate.disabled = true;
         btnClear.disabled = true;
@@ -223,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 (step.node.r === endNode.r && step.node.c === endNode.c)) {
                 
                 if (step.type === 'VISIT') {
-                    drawForces(step.node, cameFromMap);
+                    drawForces(step.node, cameFromMap, heuristicType);
                     await delay(80);
                 }
                 continue;
@@ -234,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (step.type === 'VISIT') {
                 nodeEl.classList.remove('enqueue');
                 nodeEl.classList.add('visited');
-                drawForces(step.node, cameFromMap);
+                drawForces(step.node, cameFromMap, heuristicType);
             }
 
             // Adjust speed here (Slower by 2x)
@@ -242,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Animate path
-        if (path && path.length > 0) {
+        if (found && path && path.length > 0) {
             await delay(1200);
             
             // Re-draw the final full path on canvas for dramatic effect
@@ -271,6 +287,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 nodeEl.className = 'node path'; // Clear others, add path
                 await delay(80); // 40ms 變成 80ms
             }
+        } else {
+            // 若找不到路徑
+            await delay(500);
+            alert("錯誤：無法到達目標點！");
         }
 
         btnGenerate.disabled = false;
@@ -293,10 +313,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear previous animations first
         renderMap();
         
-        const solver = new AStarSolver(currentGrid, startNode, endNode);
+        const heuristicSelect = document.getElementById('heuristic-select');
+        const heuristicType = heuristicSelect ? heuristicSelect.value : 'manhattan';
+        
+        const solver = new AStarSolver(currentGrid, startNode, endNode, heuristicType);
         const result = solver.solve();
         
-        animateAlgorithm(result.history, result.path);
+        animateAlgorithm(result.history, result.path, result.found, heuristicType);
     });
 
     // Initialize on load

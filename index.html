@@ -17,6 +17,11 @@
     <main>
         <div class="controls">
             <button id="btn-generate">Generate Random Map</button>
+            <select id="heuristic-select" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-family: 'Inter', sans-serif;">
+                <option value="manhattan">Manhattan Distance</option>
+                <option value="chebyshev">Chebyshev Distance</option>
+                <option value="euclidean">Euclidean Distance</option>
+            </select>
             <button id="btn-start" class="primary">Start Search</button>
             <button id="btn-clear">Clear Map</button>
         </div>

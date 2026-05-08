@@ -58,18 +58,29 @@ class AStarSolver {
      * @param {Array<Array<number>>} grid - 2D array where 0 is empty, 1 is obstacle
      * @param {Object} start - {r, c}
      * @param {Object} end - {r, c}
+     * @param {string} heuristicType - 'manhattan', 'chebyshev', or 'euclidean'
      */
-    constructor(grid, start, end) {
+    constructor(grid, start, end, heuristicType = 'manhattan') {
         this.grid = grid;
         this.start = start;
         this.end = end;
         this.rows = grid.length;
         this.cols = grid[0].length;
+        this.heuristicType = heuristicType;
     }
 
     heuristic(a, b) {
-        // Manhattan distance on a square grid (only 4 directions allowed)
-        return Math.abs(a.r - b.r) + Math.abs(a.c - b.c);
+        const dx = Math.abs(a.r - b.r);
+        const dy = Math.abs(a.c - b.c);
+        
+        if (this.heuristicType === 'chebyshev') {
+            return Math.max(dx, dy);
+        } else if (this.heuristicType === 'euclidean') {
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        // Default: Manhattan distance
+        return dx + dy;
     }
 
     getNeighbors(node) {
